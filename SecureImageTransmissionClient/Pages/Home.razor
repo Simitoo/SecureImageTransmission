@@ -1,0 +1,40 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+
+<PageTitle>Home</PageTitle>
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+<h2>User's connected to the server</h2>
+<p>Current count: @currentCount</p>
+
+@code {
+    private HubConnection? _hubConnection;
+    private int currentCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl("https://localhost:32769/notifications")
+            .Build();
+
+        _hubConnection.On<int>("UpdateClientCount", count =>
+        {
+            currentCount = count;
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
