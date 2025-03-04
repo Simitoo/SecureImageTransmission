@@ -4,11 +4,11 @@ using SkiaSharp;
 
 namespace SecureImageTransmissionAPI.Services
 {
-    public class ImageGeneratorService : IImageGenerator
+    public class ImageService : IImageService
     {
         private readonly string[] _supportedFormats;
 
-        public ImageGeneratorService(IConfiguration configuration)
+        public ImageService(IConfiguration configuration)
         {
             _supportedFormats = configuration.GetSection("ImageGeneration:SupportedFormats").Get<string[]>() ?? Array.Empty<string>();
         }
@@ -21,7 +21,7 @@ namespace SecureImageTransmissionAPI.Services
                 throw new InvalidOperationException($"{format} not supported");
             }
 
-            SKBitmap bitmap = new(width, height);
+            SKBitmap bitmap = new(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
             SKCanvas canvas = new(bitmap);
 
             canvas.Clear(SKColors.White);
@@ -32,6 +32,16 @@ namespace SecureImageTransmissionAPI.Services
                 Style = SKPaintStyle.Fill
             };
 
+            SKShader shader = SKShader.CreateLinearGradient(
+                new SKPoint(0, 0),
+                new SKPoint(width, height),
+                [RandomColorGeneration(), RandomColorGeneration(), RandomColorGeneration()],
+                null,
+                SKShaderTileMode.Clamp
+            );
+
+            paint.Shader = shader;
+            canvas.DrawRect(0, 0, width, height, paint);
 
             byte[] imageBytes = EncodeImage(bitmap, ImageFormat(format));
 

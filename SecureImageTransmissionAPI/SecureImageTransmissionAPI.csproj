@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>ded1bc79-6b8e-42ba-b4dd-382c7940601b</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileRunArguments>-p "8080:8080" -p "8081:8081"</DockerfileRunArguments>
   </PropertyGroup>
 
   <ItemGroup>

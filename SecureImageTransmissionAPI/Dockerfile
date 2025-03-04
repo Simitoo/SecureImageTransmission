@@ -2,11 +2,31 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8081
+ENV ASPNETCORE_URLS=http://+:8081
 
+# Switch to root for installation
+USER root
+
+# SkiaSharp dependencies
+RUN apt-get update && apt-get install -y \
+    sudo \
+	libfontconfig1 \
+    libfreetype6 \
+    libpng16-16 \
+    libjpeg62-turbo \
+    libwebp7 \
+    libtiff6 \
+    libgif7 \
+    libharfbuzz0b \
+    libicu-dev \
+    --no-install-recommends
+
+#Switch to non-root user
+USER $APP_UID
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build

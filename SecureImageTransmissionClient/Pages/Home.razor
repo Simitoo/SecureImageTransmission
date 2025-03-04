@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
-@implements IAsyncDisposable
+@using SecureImageTransmissionClient.Services
+@inject SignalRService SignalRService
 
 <PageTitle>Home</PageTitle>
 
@@ -8,33 +9,21 @@
 
 Welcome to your new app.
 
-<h2>User's connected to the server</h2>
+<h2>Users connected to the Server</h2>
 <p>Current count: @currentCount</p>
 
-@code {
-    private HubConnection? _hubConnection;
+@code{
     private int currentCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
-        _hubConnection = new HubConnectionBuilder()
-            .WithUrl("https://localhost:32769/notifications")
-            .Build();
-
-        _hubConnection.On<int>("UpdateClientCount", count =>
+        SignalRService.OnClientCountChanged += (count) =>
         {
             currentCount = count;
             StateHasChanged();
-        });
+        };
 
-        await _hubConnection.StartAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
+        await SignalRService.StartNotificationHubConnectionAsync();
     }
 }
+

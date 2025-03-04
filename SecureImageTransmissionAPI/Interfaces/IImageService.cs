@@ -2,7 +2,7 @@
 
 namespace SecureImageTransmissionAPI.Interfaces
 {
-    public interface IImageGenerator
+    public interface IImageService
     {
         ImageModel GenerateImage(int width, int height, string format);
     }

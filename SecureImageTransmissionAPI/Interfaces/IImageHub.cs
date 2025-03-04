@@ -4,6 +4,10 @@ namespace SecureImageTransmissionAPI.Interfaces
 {
     public interface IImageHub
     {
-        Task ReceiveImage(ImageModel image);
+        Task ReceiveImage(string imageSrc);
+
+        Task GenerateImage(int width, int height, string format);
+
+        Task StopGeneratingImage();
     }
 }

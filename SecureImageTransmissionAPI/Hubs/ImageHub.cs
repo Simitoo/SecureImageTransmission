@@ -1,36 +1,27 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using SecureImageTransmissionAPI.Interfaces;
-using SecureImageTransmissionAPI.Models;
-using SecureImageTransmissionAPI.Services;
 
 namespace SecureImageTransmissionAPI.Hubs
 {
     public class ImageHub : Hub<IImageHub>
     {
-        private readonly ImageGeneratorService _imageGenerator;
-        private bool _isGenerating = true;
+        private readonly IImageGenerationService _imageGenerationService;
 
-        public ImageHub(ImageGeneratorService imageGenerator)
+        public ImageHub(IImageGenerationService imageGenerationService)
         {
-            _imageGenerator = imageGenerator;
+            _imageGenerationService = imageGenerationService;
         }
 
-        public async Task GenerateImage(int width, int height, string format)
+        public Task GenerateImage(int width, int height, string format)
         {
-            int milliseconds = 5000;
-
-            while (_isGenerating)
-            {
-                ImageModel image = _imageGenerator.GenerateImage(width, height, format);
-                await Clients.Caller.ReceiveImage(image);
-                await Task.Delay(milliseconds);
-            }
+            _imageGenerationService.StartGenerating(width, height, format);
+            return Task.CompletedTask;
         }
 
-        public override Task OnDisconnectedAsync(Exception? exception)
+        public Task StopGeneratingImage()
         {
-            _isGenerating = false;
-            return base.OnDisconnectedAsync(exception);
+            _imageGenerationService.StopGenerating();
+            return Task.CompletedTask;
         }
     }
 }
