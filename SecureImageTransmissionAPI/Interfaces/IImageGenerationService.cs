@@ -1,8 +1,10 @@
-﻿namespace SecureImageTransmissionAPI.Interfaces
+﻿using SecureImageTransmissionAPI.Common;
+
+namespace SecureImageTransmissionAPI.Interfaces
 {
     public interface IImageGenerationService
     {
-        void StartGenerating(int width, int height, string format);
+        Result<string> StartGenerating(int width, int height, string format);
         void StopGenerating();
     }
 }

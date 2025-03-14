@@ -1,4 +1,8 @@
-﻿using SecureImageTransmissionAPI.Interfaces;
+﻿using Microsoft.Extensions.Options;
+using SecureImageTransmissionAPI.Common;
+using SecureImageTransmissionAPI.Common.Constants;
+using SecureImageTransmissionAPI.Common.Options;
+using SecureImageTransmissionAPI.Interfaces;
 using SecureImageTransmissionAPI.Models;
 using SkiaSharp;
 
@@ -6,19 +10,25 @@ namespace SecureImageTransmissionAPI.Services
 {
     public class ImageService : IImageService
     {
-        private readonly string[] _supportedFormats;
+        private readonly FormatOptions _imageFormatOptions;
+        private readonly ImageSizeOptions _imageSizeOptions;
 
-        public ImageService(IConfiguration configuration)
+        public ImageService(IOptions<FormatOptions> formtaOptions, IOptions<ImageSizeOptions> sizeOptions)
         {
-            _supportedFormats = configuration.GetSection("ImageGeneration:SupportedFormats").Get<string[]>() ?? Array.Empty<string>();
+            _imageFormatOptions = formtaOptions.Value;
+            _imageSizeOptions = sizeOptions.Value;
         }
 
-        public ImageModel GenerateImage(int width, int height, string format)
+        public Result<ImageModel> GenerateImage(int width, int height, string format)
         {
-
-            if (!_supportedFormats.Contains(format.ToLower()))
+            if (!IsSupportedFormat(format.ToLower()))
             {
-                throw new InvalidOperationException($"{format} not supported");
+                return Result<ImageModel>.Failure(string.Format(Messages.UnsupportedImageFormat, format));
+            }
+
+            if (!IsWithinLimits(width, height))
+            {
+                return Result<ImageModel>.Failure(Messages.ImageSizeOutOfRange);
             }
 
             SKBitmap bitmap = new(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul));
@@ -45,7 +55,7 @@ namespace SecureImageTransmissionAPI.Services
 
             byte[] imageBytes = EncodeImage(bitmap, ImageFormat(format));
 
-            return new ImageModel(imageBytes, format);
+            return Result<ImageModel>.Success(new ImageModel(imageBytes, format));
         }
 
         private static SKColor RandomColorGeneration()
@@ -73,8 +83,19 @@ namespace SecureImageTransmissionAPI.Services
             {
                 "png" => SKEncodedImageFormat.Png,
                 "jpeg" => SKEncodedImageFormat.Jpeg,
-                _ => throw new InvalidOperationException("Format not supported")
+                _ => throw new InvalidOperationException(string.Format(Messages.UnsupportedImageFormat, format))
             };
+        }
+
+        private bool IsSupportedFormat(string format)
+        {
+            return _imageFormatOptions.SupportedFormats.Contains(format);
+        }
+
+        private bool IsWithinLimits(int width, int height)
+        {
+            return width >= _imageSizeOptions.MinWidth && width <= _imageSizeOptions.MaxWidth &&
+               height >= _imageSizeOptions.MinHeight && height <= _imageSizeOptions.MaxHeight;
         }
     }
 }

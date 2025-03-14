@@ -8,8 +8,8 @@
         public Notification(string sender, string content)
         {
             Id = Guid.NewGuid();
-            Sender = sender;
-            Content = content;
+            _sender = sender;
+            _content = content;
             SentAt = DateTime.Now;
         }
 

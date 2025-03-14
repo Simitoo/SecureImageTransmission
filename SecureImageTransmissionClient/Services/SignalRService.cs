@@ -10,21 +10,32 @@ namespace SecureImageTransmissionClient.Services
         private readonly HubConnection _notificationHubConnection;
 
         public event Action<string>? OnImageReceived;
+        public event Action<string>? OnErrorReceived;
         public event Action<int>? OnClientCountChanged;
 
         public SignalRService(NavigationManager navigation)
         {
+            Console.WriteLine("Starting SignalR Hub Connection...");
             _imageHubConnection = new HubConnectionBuilder()
                 .WithUrl("http://localhost:8081/imagehub")
+                .WithAutomaticReconnect()
                 .Build();
 
             _notificationHubConnection = new HubConnectionBuilder()
                 .WithUrl("http://localhost:8081/notifications")
+                .WithAutomaticReconnect()
                 .Build();
 
             _imageHubConnection.On<string>("ReceiveImage", (image) =>
             {
+                Console.WriteLine($"SignalR received image: {image.Substring(0, Math.Min(50, image.Length))}...");
                 OnImageReceived?.Invoke(image);
+            });
+
+            _imageHubConnection.On<string>("ReceiveError", (error) =>
+            {
+                Console.WriteLine($"SignalR received error: {error}");
+                OnErrorReceived?.Invoke(error);
             });
 
             _notificationHubConnection.On<int>("UpdateClientCount", (count) =>

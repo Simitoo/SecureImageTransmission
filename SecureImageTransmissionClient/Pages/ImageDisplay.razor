@@ -26,6 +26,11 @@
     <button @onclick="StopGenerating">Stop Generating</button>
 </div>
 
+@if (!string.IsNullOrEmpty(Message))
+{
+    <p>@Message</p>
+}
+
 @if (Images.Count > 0)
 {
     <ul>
@@ -38,35 +43,55 @@
     </ul>
 }
 
+
 @code {
     private int Width { get; set; } = 500;
     private int Height { get; set; } = 500;
     private string ImageFormat { get; set; } = "png";
     private List<string> Images { get; set; } = new List<string>();
+    private string Message { get; set; } = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-
-        SignalRService.OnImageReceived += (image) =>
+        try
         {
-            Console.WriteLine($"Received image: {image.Substring(0, Math.Min(50, image.Length))}...");
 
-            if (!string.IsNullOrEmpty(image))
+            SignalRService.OnImageReceived += (image) =>
             {
-                Images.Insert(0, image);
-                if (Images.Count > 5)
+                Console.WriteLine($"Received image: {image.Substring(0, Math.Min(50, image.Length))}...");
+
+                if (!string.IsNullOrEmpty(image))
                 {
-                    Images.RemoveAt(Images.Count - 1);
+                    Images.Insert(0, image);
+                    if (Images.Count > 5)
+                    {
+                        Images.RemoveAt(Images.Count - 1);
+                    }
+                    StateHasChanged();
                 }
-                StateHasChanged();
-            }
-            else
-            {
-                Console.WriteLine("Received empty image data!");
-            }
-        };
+                else
+                {
+                    Console.WriteLine("Received empty image data!");
+                }
+            };
 
-        await SignalRService.StartImageHubConnectionAsync();
+
+            SignalRService.OnErrorReceived += (message) =>
+            {
+                Message = message;
+
+                StateHasChanged();
+            };
+
+            await SignalRService.StartImageHubConnectionAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
+        }
+
+
+
     }
 
     private async Task StartGenerating()
