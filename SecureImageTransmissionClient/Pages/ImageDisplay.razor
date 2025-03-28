@@ -58,7 +58,6 @@
 
             SignalRService.OnImageReceived += (image) =>
             {
-                Console.WriteLine($"Received image: {image.Substring(0, Math.Min(50, image.Length))}...");
 
                 if (!string.IsNullOrEmpty(image))
                 {

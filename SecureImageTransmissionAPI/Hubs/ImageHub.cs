@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using SecureImageTransmissionAPI.Common.Constants;
 using SecureImageTransmissionAPI.Interfaces;
 
 namespace SecureImageTransmissionAPI.Hubs
 {
+    [Authorize("read:images")]
     public class ImageHub : Hub<IImageHub>
     {
         private readonly ILogger<ImageHub> _logger;

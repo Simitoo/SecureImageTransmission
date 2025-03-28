@@ -1,5 +1,6 @@
 ﻿
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace SecureImageTransmissionClient.Services
@@ -8,16 +9,22 @@ namespace SecureImageTransmissionClient.Services
     {
         private readonly HubConnection _imageHubConnection;
         private readonly HubConnection _notificationHubConnection;
+        private readonly Auth0TokenHandler _tokenHandler;
 
         public event Action<string>? OnImageReceived;
         public event Action<string>? OnErrorReceived;
         public event Action<int>? OnClientCountChanged;
 
-        public SignalRService(NavigationManager navigation)
+        public SignalRService(Auth0TokenHandler tokenHandler)
         {
+            _tokenHandler = tokenHandler;
+
             Console.WriteLine("Starting SignalR Hub Connection...");
             _imageHubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:8081/imagehub")
+                .WithUrl("http://localhost:8081/imagehub", options =>
+                {
+                    options.AccessTokenProvider = async () => await _tokenHandler.GetAccessToken();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 
@@ -27,8 +34,7 @@ namespace SecureImageTransmissionClient.Services
                 .Build();
 
             _imageHubConnection.On<string>("ReceiveImage", (image) =>
-            {
-                Console.WriteLine($"SignalR received image: {image.Substring(0, Math.Min(50, image.Length))}...");
+            {             
                 OnImageReceived?.Invoke(image);
             });
 
@@ -42,12 +48,12 @@ namespace SecureImageTransmissionClient.Services
             {
                 OnClientCountChanged?.Invoke(count);
             });
-
+            _tokenHandler = tokenHandler;
         }
 
         public async Task StartImageHubConnectionAsync()
         {
-            if(_imageHubConnection.State == HubConnectionState.Disconnected)
+            if (_imageHubConnection.State == HubConnectionState.Disconnected)
             {
                 await _imageHubConnection.StartAsync();
             }
@@ -79,7 +85,7 @@ namespace SecureImageTransmissionClient.Services
 
         public async Task StartGenerateImageRequest(int width, int height, string format)
         {
-            if(_imageHubConnection.State == HubConnectionState.Connected)
+            if (_imageHubConnection.State == HubConnectionState.Connected)
             {
                 await _imageHubConnection.SendAsync("GenerateImage", width, height, format);
             }
