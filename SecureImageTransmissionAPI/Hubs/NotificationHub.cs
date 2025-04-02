@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using SecureImageTransmissionAPI.Interfaces;
 using SecureImageTransmissionAPI.Models;
 

@@ -1,7 +1,6 @@
-﻿
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
-using Microsoft.AspNetCore.SignalR.Client;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace SecureImageTransmissionClient.Services
 {
@@ -9,32 +8,44 @@ namespace SecureImageTransmissionClient.Services
     {
         private readonly HubConnection _imageHubConnection;
         private readonly HubConnection _notificationHubConnection;
-        private readonly Auth0TokenHandler _tokenHandler;
+        private readonly HttpClient _httpClient;
+        private readonly string _apiUrl = "http://localhost:8081";
 
         public event Action<string>? OnImageReceived;
         public event Action<string>? OnErrorReceived;
         public event Action<int>? OnClientCountChanged;
 
-        public SignalRService(Auth0TokenHandler tokenHandler)
+        public SignalRService(HttpClient httpClient)
         {
-            _tokenHandler = tokenHandler;
+            _httpClient = httpClient;
 
-            Console.WriteLine("Starting SignalR Hub Connection...");
             _imageHubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:8081/imagehub", options =>
+                .WithUrl($"{_apiUrl}/imagehub", options =>
                 {
-                    options.AccessTokenProvider = async () => await _tokenHandler.GetAccessToken();
+                    options.AccessTokenProvider = async () =>
+                    {
+                        var token = await GetAccessTokenAsync();
+                        if(string.IsNullOrEmpty(token))
+                        {
+                            Console.WriteLine("Failed to retrieve access token for SignalR.");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Token retrieved: {token.Substring(0, 10)}...");
+                        }
+                        return token;
+                    };
                 })
                 .WithAutomaticReconnect()
                 .Build();
 
             _notificationHubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:8081/notifications")
+                .WithUrl($"{_apiUrl}/notifications")
                 .WithAutomaticReconnect()
                 .Build();
 
             _imageHubConnection.On<string>("ReceiveImage", (image) =>
-            {             
+            {
                 OnImageReceived?.Invoke(image);
             });
 
@@ -48,14 +59,51 @@ namespace SecureImageTransmissionClient.Services
             {
                 OnClientCountChanged?.Invoke(count);
             });
-            _tokenHandler = tokenHandler;
+        }
+
+        private async Task<string?> GetAccessTokenAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetFromJsonAsync<JsonElement>($"{_apiUrl}/api/token");
+                if (response.TryGetProperty("token", out var tokenElement))
+                {
+                    var token = tokenElement.GetString();
+                    Console.WriteLine($"Access token received: {token}");
+                    return token;
+                }
+                else
+                {
+                    Console.WriteLine("Access token not found in response.");
+                    return null;
+                }
+                //return response.GetProperty("token").GetString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting access token: {ex.Message}");
+                return null;
+            }
+
         }
 
         public async Task StartImageHubConnectionAsync()
         {
             if (_imageHubConnection.State == HubConnectionState.Disconnected)
             {
-                await _imageHubConnection.StartAsync();
+                try
+                {
+                    await _imageHubConnection.StartAsync();
+                    Console.WriteLine("ImageHub connection started successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error starting ImageHub connection: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("ImageHub connection is already started.");
             }
         }
 

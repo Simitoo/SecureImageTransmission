@@ -5,7 +5,7 @@ using SecureImageTransmissionAPI.Interfaces;
 
 namespace SecureImageTransmissionAPI.Hubs
 {
-    [Authorize("read:images")]
+    [Authorize]
     public class ImageHub : Hub<IImageHub>
     {
         private readonly ILogger<ImageHub> _logger;
@@ -15,6 +15,19 @@ namespace SecureImageTransmissionAPI.Hubs
         {
             _imageGenerationService = imageGenerationService;
             _logger = logger;
+        }
+
+        public override Task OnConnectedAsync()
+        {
+            var httpContext = Context.GetHttpContext();
+
+            var tokenFromQuery = httpContext?.Request.Query["access_token"];
+            var tokenFromHeader = httpContext?.Request.Headers["Authorization"];
+
+            _logger.LogInformation("🔍 Token from Query String: {TokenQuery}", tokenFromQuery);
+            _logger.LogInformation("🔍 Token from Authorization Header: {TokenHeader}", tokenFromHeader);
+
+            return base.OnConnectedAsync();
         }
 
         public async Task<string> GenerateImage(int width, int height, string format)

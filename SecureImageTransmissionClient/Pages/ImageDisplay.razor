@@ -55,6 +55,7 @@
     {
         try
         {
+            await SignalRService.StartImageHubConnectionAsync();
 
             SignalRService.OnImageReceived += (image) =>
             {
@@ -81,8 +82,6 @@
 
                 StateHasChanged();
             };
-
-            await SignalRService.StartImageHubConnectionAsync();
         }
         catch (Exception ex)
         {
